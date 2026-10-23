@@ -108,7 +108,7 @@ with left:
     b1, b2 = st.columns([2, 1])
     b1.button("Check this listing", type="primary", on_click=run_check)
     b2.button("Clear", on_click=clear_all)
-    st.caption("* required. Prices: numbers only, any currency. Takes about 10 seconds.")
+    st.caption("Fields marked * are required. Prices: numbers only, any currency. Takes about 10 seconds.")
 
 with right:
     st.markdown(st.session_state["result_html"], unsafe_allow_html=True)
