@@ -253,13 +253,14 @@ def parse_verdict(resp, ev, listing_text):
 # ---------------- rendering ----------------
 COLORS = {"FLAG": "#B42318", "REVIEW": "#B54708", "PASS": "#027A48"}
 HEAD = {"FLAG": "High risk — fix before publishing", "REVIEW": "Needs a closer look before publishing", "PASS": "Low risk — looks okay to publish"}
-CSS = ("font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1B2430;line-height:1.5")
+CSS = ("font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1B2430;line-height:1.5;"
+       "background:#FAF8F4;border-radius:12px;padding:18px 20px")
 e_ = html.escape
 
 
 def render_result(res, check_msg, model, listing_title):
     c = COLORS[res["verdict"]]
-    cited = "".join(f'<li><a href="{e_(x["link"])}" target="_blank">{e_(x["title"])}</a> <span style="color:#5B6573">({e_(x["source"])}, {e_(x["date"])})</span></li>'
+    cited = "".join(f'<li><a href="{e_(x["link"])}" target="_blank" style="color:#1A56B0">{e_(x["title"])}</a> <span style="color:#5B6573">({e_(x["source"])}, {e_(x["date"])})</span></li>'
                     if x["link"] else f'<li>{e_(x["title"])} <span style="color:#5B6573">({e_(x["source"])}, {e_(x["date"])})</span></li>'
                     for x in res["cited"]) or "<li>No closely matching FTC case — the verdict is based on the listing and general FTC principles.</li>"
     mismatch = check_msg.startswith("MISMATCH") or check_msg.startswith("Unusual")
@@ -272,25 +273,35 @@ def render_result(res, check_msg, model, listing_title):
  <div style="font-size:22px;font-weight:700;color:{c};margin:4px 0">{res['verdict']} · {HEAD[res['verdict']]}</div>
  <div style="font-size:15px">Risk score <b>{res['risk']}</b> / 100 · claim type: {e_(res['claim_type'].replace('_', ' '))}</div>
  <div style="height:8px;background:#eee;border-radius:4px;margin:8px 0 2px"><div style="height:8px;width:{res['risk']}%;background:{c};border-radius:4px"></div></div>
+ <div style="font-size:13px;color:#3E4652;margin-top:6px"><b>What the score means:</b> how serious the problem would be if this claim is wrong
+ (not how confident the AI is). 70+ = fix before publishing · 40–69 = have a person check · under 40 = low risk.</div>
 </div>
-<h4 style="margin:16px 0 4px">The riskiest claim</h4><div>“{e_(res['primary_claim'])}”</div>
-<h4 style="margin:14px 0 4px">Why</h4><div>{e_(res['reasoning'])}</div>
-<h4 style="margin:14px 0 4px">Price check</h4><div style="{'color:#B42318;font-weight:600' if mismatch else ''}">{e_(check_msg)}</div>
-<h4 style="margin:14px 0 4px">Similar FTC cases</h4><ul style="margin:0;padding-left:20px">{cited}</ul>
-<h4 style="margin:14px 0 4px">How to prove or disprove the claim</h4><div>{e_(res['falsification'])}</div>
-<h4 style="margin:14px 0 4px">Suggested safer wording</h4>
+<h4 style="margin:16px 0 4px;color:#1B2430">What was checked</h4>
+<ul style="margin:0;padding-left:20px;font-size:14px">
+ <li>✓ <b>Discount math</b>: calculated by the tool from the prices you entered, so you can re-check it yourself.</li>
+ <li>✓ <b>Similar FTC cases</b>: your listing was compared with {res.get('evidence_total', 0)} FTC records; the {res.get('retrieved', 0)} closest were given to the AI.</li>
+ <li>✓ <b>AI review</b>: the AI picked the single riskiest claim and explained it.</li>
+ <li>✗ <b>Not checked</b>: whether your prices, specs or reviews are true. ClaimCheck only knows what you typed, so a PASS means no risky
+ claim was found in that text, not that the product facts are verified.</li>
+</ul>
+<h4 style="margin:16px 0 4px;color:#1B2430">The riskiest claim</h4><div>“{e_(res['primary_claim'])}”</div>
+<h4 style="margin:14px 0 4px;color:#1B2430">Why</h4><div>{e_(res['reasoning'])}</div>
+<h4 style="margin:14px 0 4px;color:#1B2430">Price check</h4><div style="{'color:#B42318;font-weight:600' if mismatch else ''}">{e_(check_msg)}</div>
+<h4 style="margin:14px 0 4px;color:#1B2430">Similar FTC cases</h4><ul style="margin:0;padding-left:20px">{cited}</ul>
+<h4 style="margin:14px 0 4px;color:#1B2430">How to prove or disprove the claim</h4><div>{e_(res['falsification'])}</div>
+<h4 style="margin:14px 0 4px;color:#1B2430">Suggested safer wording</h4>
 <div style="padding:10px 12px;background:#F0F7F3;border:1px solid #CFE7DA;border-radius:6px">{e_(res['rewrite'])}</div>{warn}
 <div style="margin-top:14px;font-size:12px;color:#5B6573">This is a first-pass risk check, not legal advice. Model: {e_(model)}{' · verdict adjusted to match its score' if res['corrected'] else ''}.</div>
 </div>"""
 
 
 def render_error(msg):
-    return (f'<div style="{CSS};border:1px solid #F3C5BF;border-left:8px solid #B42318;background:#FFF4F2;border-radius:10px;padding:16px 18px">'
+    return (f'<div style="{CSS};border:1px solid #F3C5BF;border-left:8px solid #B42318;background:#FFF4F2">'
             f'<div style="font-size:18px;font-weight:700;color:#B42318">Couldn\'t check this listing</div>'
             f'<div style="margin-top:6px;font-size:15px">{e_(msg)}</div></div>')
 
 
-EMPTY_HTML = (f'<div style="{CSS};border:1px dashed #C9C3B5;border-radius:10px;padding:22px;color:#5B6573">'
+EMPTY_HTML = (f'<div style="{CSS};border:1px dashed #C9C3B5;color:#3E4652">'
               '<div style="font-size:17px;font-weight:600;color:#1B2430">Your result will appear here</div>'
               '<ol style="margin:8px 0 0;padding-left:20px"><li>Paste the listing details on the left — or pick an example.</li>'
               '<li>Click <b>Check this listing</b>.</li><li>You\'ll get a verdict (FLAG, REVIEW or PASS), the reason, similar FTC cases, '
@@ -305,6 +316,7 @@ def check_listing(title, price, mrp, discount, rating, claims, api_key, evidence
     ev, _ = retrieve(listing_text + " " + check_msg, evidence)
     resp, model = call_gemini(build_request(listing_text, check_msg, ev), api_key, post=post)
     res = parse_verdict(resp, ev, listing_text)
+    res["evidence_total"], res["retrieved"] = len(evidence), len(ev)
     return res, check_msg, model
 
 
